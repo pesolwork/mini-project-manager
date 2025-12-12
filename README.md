@@ -76,7 +76,7 @@ VITE_FIREBASE_STORAGE_BUCKET="<your-storage-bucket>"
 VITE_FIREBASE_MESSAGING_SENDER_ID="<your-messaging-sender-id>"
 VITE_FIREBASE_APP_ID="<your-app-id>"
 
-VITE_USE_EMULATORS=true
+VITE_USE_EMULATORS=true "true or any value"
 VITE_FIREBASE_REGION=us-central1
 ```
 
