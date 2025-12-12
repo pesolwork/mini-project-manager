@@ -195,7 +195,7 @@ firebase deploy --only functions:createProjectWithDefaults
 firebase deploy --only firestore:rules
 ```
 
-### Deploy Indexes
+### Deploy Firestore Indexes
 
 ```bash
 firebase deploy --only firestore:indexes
