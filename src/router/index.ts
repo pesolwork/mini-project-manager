@@ -16,13 +16,8 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
-  const auth = useAuth();
-
-  if (auth.loading.value) {
-    await auth.initAuth();
-  }
-
-  if (to.meta.requiresAuth && !auth.isAuthenticated.value) {
+  const { isAuthenticated } = useAuth();
+  if (to.meta.requiresAuth && !isAuthenticated.value) {
     return "/login";
   }
 });

@@ -5,19 +5,27 @@
  */
 
 // Plugins
-import { registerPlugins } from '@/plugins'
+import { registerPlugins } from "@/plugins";
 
 // Components
-import App from './App.vue'
+import App from "./App.vue";
 
 // Composables
-import { createApp } from 'vue'
+import { createApp } from "vue";
 
 // Styles
-import 'unfonts.css'
+import "unfonts.css";
 
-const app = createApp(App)
+// auth
+import { useAuth } from "@/composables/useAuth";
 
-registerPlugins(app)
+const { initAuth } = useAuth();
 
-app.mount('#app')
+const bootstrap = async () => {
+  await initAuth();
+  const app = createApp(App);
+  registerPlugins(app);
+  app.mount("#app");
+};
+
+bootstrap();

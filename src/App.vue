@@ -4,12 +4,4 @@
   </v-app>
 </template>
 
-<script lang="ts" setup>
-import { useAuth } from "@/composables/useAuth";
-
-const { initAuth } = useAuth();
-
-onMounted(async () => {
-  await initAuth();
-});
-</script>
+<script lang="ts" setup></script>
