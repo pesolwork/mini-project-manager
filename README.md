@@ -4,12 +4,6 @@ A small-scale project management application built using **Vite**, **Vue.js**, *
 
 ---
 
-## 🌐 Live Demo
-
-URL: https://mini-project-manager-c6c81.web.app/
-
----
-
 ## 📌 Prerequisites
 
 Before you begin, ensure you have:
@@ -76,7 +70,7 @@ VITE_FIREBASE_STORAGE_BUCKET="<your-storage-bucket>"
 VITE_FIREBASE_MESSAGING_SENDER_ID="<your-messaging-sender-id>"
 VITE_FIREBASE_APP_ID="<your-app-id>"
 
-VITE_USE_EMULATORS=true
+VITE_USE_EMULATORS=true "true or any value"
 VITE_FIREBASE_REGION=us-central1
 ```
 
@@ -195,7 +189,7 @@ firebase deploy --only functions:createProjectWithDefaults
 firebase deploy --only firestore:rules
 ```
 
-### Deploy Indexes
+### Deploy Firestore Indexes
 
 ```bash
 firebase deploy --only firestore:indexes
