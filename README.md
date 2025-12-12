@@ -4,12 +4,6 @@ A small-scale project management application built using **Vite**, **Vue.js**, *
 
 ---
 
-## 🌐 Live Demo
-
-URL: https://mini-project-manager-c6c81.web.app/
-
----
-
 ## 📌 Prerequisites
 
 Before you begin, ensure you have:
