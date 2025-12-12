@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper: user must be logged in
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: check owner match
+    function isOwner(ownerId) {
+      return request.auth.uid == ownerId;
+    }
+
+    // HELPER: get ownerId from any document path
+    function getOwner(path) {
+      return get(path).data.ownerId;
+    }
+
+    // Projects
+    match /projects/{projectId} {
+
+      allow read: if isAuthenticated()
+                  && isOwner(resource.data.ownerId);
+
+      allow create: if isAuthenticated()
+                    && request.resource.data.ownerId == request.auth.uid
+                    && request.resource.data.keys().hasAll(['ownerId', 'title', 'createdAt', 'updatedAt'])
+                    && request.resource.data.title is string
+                    && request.resource.data.title.size() > 0;
+
+      allow update: if isAuthenticated()
+                    && isOwner(resource.data.ownerId)
+                    && request.resource.data.ownerId == resource.data.ownerId;
+
+      allow delete: if isAuthenticated()
+                    && isOwner(resource.data.ownerId);
+
+
+      // Tasks subcollection
+      match /tasks/{taskId} {
+
+        // Pre-calc project path for DRY
+        function projectPath() {
+          return /databases/$(database)/documents/projects/$(projectId);
+        }
+
+        allow read: if isAuthenticated()
+                    && isOwner(getOwner(projectPath()));
+
+        allow create: if isAuthenticated()
+                      && isOwner(getOwner(projectPath()))
+                      && request.resource.data.keys().hasAll(['title', 'status', 'createdAt', 'updatedAt'])
+                      && request.resource.data.title is string
+                      && request.resource.data.title.size() > 0
+                      && request.resource.data.status in ['open', 'done'];
+
+        allow update: if isAuthenticated()
+                      && isOwner(getOwner(projectPath()))
+                      && request.resource.data.status in ['open', 'done'];
+
+        allow delete: if isAuthenticated()
+                      && isOwner(getOwner(projectPath()));
+      }
+    }
+  }
+}
