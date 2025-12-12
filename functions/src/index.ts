@@ -11,7 +11,7 @@ export { createProjectWithDefaults } from "./createProjectWithDefaults";
 export { onProjectDeleted } from "./onProjectDeleted";
 export { stats } from "./stats";
 
-export const helloWorld = onRequest((request, response) => {
+export const helloWorld = onRequest((request, response): void => {
   logger.info("Hello logs!", { structuredData: true });
   response.send("Hello from Firebase!");
 });

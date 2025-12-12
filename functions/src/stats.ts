@@ -1,49 +1,66 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import * as logger from "firebase-functions/logger";
+import { StatsResponse } from "./types";
 
-export const stats = onRequest({ cors: true }, async (req, res) => {
-  if (req.method !== "GET") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
-
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith("Bearer ")) {
-      res.status(401).json({ error: "Unauthorized" });
+export const stats = onRequest(
+  { cors: true },
+  async (req, res): Promise<void> => {
+    if (req.method !== "GET") {
+      res.status(405).json({ error: "Method not allowed" });
       return;
     }
 
-    const idToken = authHeader.split("Bearer ")[1];
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    const uid = decoded.uid;
+    try {
+      const authHeader = req.headers.authorization;
 
-    const db = admin.firestore();
-    const projectsSnap = await db
-      .collection("projects")
-      .where("ownerId", "==", uid)
-      .get();
+      if (!authHeader?.startsWith("Bearer ")) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
 
-    const projectIds = projectsSnap.docs.map((doc) => doc.id);
+      const idToken = authHeader.split("Bearer ")[1];
 
-    let taskCount = 0;
-    for (const projectId of projectIds) {
-      const tasksSnap = await db
+      // Verify token
+      const decoded = await admin.auth().verifyIdToken(idToken);
+      const uid = decoded.uid;
+
+      const db = admin.firestore();
+
+      // Fetch Projects Owned by User
+      const projectsSnap = await db
         .collection("projects")
-        .doc(projectId)
-        .collection("tasks")
+        .where("ownerId", "==", uid)
         .get();
 
-      taskCount += tasksSnap.size;
-    }
+      const projectIds = projectsSnap.docs.map((doc) => doc.id);
 
-    res.json({
-      projectCount: projectsSnap.size,
-      taskCount,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Internal server error" });
+      const taskCountPromises = projectIds.map((projectId) =>
+        db
+          .collection("projects")
+          .doc(projectId)
+          .collection("tasks")
+          .count()
+          .get()
+      );
+
+      const taskCountResults = await Promise.all(taskCountPromises);
+
+      // Sum all task counts
+      const taskCount = taskCountResults.reduce(
+        (sum, snap) => sum + (snap.data()?.count ?? 0),
+        0
+      );
+
+      const response: StatsResponse = {
+        projectCount: projectsSnap.size,
+        taskCount,
+      };
+
+      res.json(response);
+    } catch (err) {
+      logger.error(err);
+      res.status(500).json({ error: "Internal server error" });
+    }
   }
-});
+);
