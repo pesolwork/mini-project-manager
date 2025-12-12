@@ -35,17 +35,22 @@ export const stats = onRequest(
 
       const projectIds = projectsSnap.docs.map((doc) => doc.id);
 
-      // Count Tasks Across All Projects
-      let taskCount = 0;
-      for (const projectId of projectIds) {
-        const tasksSnap = await db
+      const taskCountPromises = projectIds.map((projectId) =>
+        db
           .collection("projects")
           .doc(projectId)
           .collection("tasks")
-          .get();
+          .count()
+          .get()
+      );
 
-        taskCount += tasksSnap.size;
-      }
+      const taskCountResults = await Promise.all(taskCountPromises);
+
+      // Sum all task counts
+      const taskCount = taskCountResults.reduce(
+        (sum, snap) => sum + (snap.data()?.count ?? 0),
+        0
+      );
 
       const response: StatsResponse = {
         projectCount: projectsSnap.size,

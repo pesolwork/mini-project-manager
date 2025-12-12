@@ -19,8 +19,11 @@ export const createProjectWithDefaults = onCall(
 
     const { title, description } = request.data as ProjectInput;
 
-    if (!title) {
-      throw new HttpsError("invalid-argument", "title is required.");
+    if (!title || typeof title !== "string") {
+      throw new HttpsError(
+        "invalid-argument",
+        "title is required and must be a string."
+      );
     }
 
     const now = Timestamp.now();
@@ -29,7 +32,6 @@ export const createProjectWithDefaults = onCall(
     const batch = db.batch();
 
     const projectRef = db.collection("projects").doc();
-    const tasksRef = projectRef.collection("tasks");
 
     // Project data
     const projectData: Omit<Project, "id"> = {
@@ -50,7 +52,7 @@ export const createProjectWithDefaults = onCall(
     ];
 
     defaultTasks.forEach((task) => {
-      const taskDoc = tasksRef.doc();
+      const taskRef = projectRef.collection("tasks").doc();
       // Task data
       const taskData: Omit<Task, "id"> = {
         ...task,
@@ -58,7 +60,7 @@ export const createProjectWithDefaults = onCall(
         createdAt: now,
         updatedAt: now,
       };
-      batch.set(taskDoc, taskData);
+      batch.set(taskRef, taskData);
     });
 
     await batch.commit();
