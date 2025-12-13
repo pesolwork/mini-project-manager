@@ -24,7 +24,7 @@ npm install -g firebase-tools
 ### 1. Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/pesolwork/mini-project-manager.git
 cd mini-project-manager
 ```
 
