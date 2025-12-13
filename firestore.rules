@@ -1,66 +1,112 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Helper: user must be logged in
+
+    // Helpers
+
+    // Allow access only to authenticated users
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper: check owner match
+    // Check whether the current user is the resource owner
     function isOwner(ownerId) {
       return request.auth.uid == ownerId;
     }
 
-    // HELPER: get ownerId from any document path
-    function getOwner(path) {
-      return get(path).data.ownerId;
+    // Fetch a project document by projectId
+    function getProject(projectId) {
+      return get(/databases/$(database)/documents/projects/$(projectId));
+    }
+
+    // Get ownerId from the parent project
+    function projectOwner(projectId) {
+      return getProject(projectId).data.ownerId;
+    }
+
+    // Ensure only allowed fields are written to the document
+    function onlyKeys(allowedKeys) {
+      return request.resource.data.keys().hasOnly(allowedKeys);
     }
 
     // Projects
     match /projects/{projectId} {
 
-      allow read: if isAuthenticated()
-                  && isOwner(resource.data.ownerId);
+      // Check if the authenticated user owns this project
+      function isProjectOwner() {
+        return isOwner(resource.data.ownerId);
+      }
 
+      // Project can be read or deleted only by its owner
+      allow read, delete: if isAuthenticated() && isProjectOwner();
+
+      // Create project: authenticated user must be the owner
       allow create: if isAuthenticated()
-                    && request.resource.data.ownerId == request.auth.uid
-                    && request.resource.data.keys().hasAll(['ownerId', 'title', 'createdAt', 'updatedAt'])
-                    && request.resource.data.title is string
-                    && request.resource.data.title.size() > 0;
+        && isOwner(request.resource.data.ownerId)
+        && onlyKeys([
+      'ownerId',
+      'title',
+      'description',
+      'createdAt',
+      'updatedAt'
+      ])
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0;
 
+      // Update project: only owner, immutable ownerId & createdAt
       allow update: if isAuthenticated()
-                    && isOwner(resource.data.ownerId)
-                    && request.resource.data.ownerId == resource.data.ownerId;
-
-      allow delete: if isAuthenticated()
-                    && isOwner(resource.data.ownerId);
-
+        && isProjectOwner()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && onlyKeys([
+      'ownerId',
+      'title',
+      'description',
+      'createdAt',
+      'updatedAt'
+      ])
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.title is string
+        && request.resource.data.title.size() > 0;
 
       // Tasks subcollection
       match /tasks/{taskId} {
 
-        // Pre-calc project path for DRY
-        function projectPath() {
-          return /databases/$(database)/documents/projects/$(projectId);
+        // Task access is granted only if user owns the parent project
+        function isTaskOwner() {
+          return isOwner(projectOwner(projectId));
         }
 
-        allow read: if isAuthenticated()
-                    && isOwner(getOwner(projectPath()));
+        // Read or delete task: project owner only
+        allow read, delete: if isAuthenticated() && isTaskOwner();
 
+        // Create task under owned project
         allow create: if isAuthenticated()
-                      && isOwner(getOwner(projectPath()))
-                      && request.resource.data.keys().hasAll(['title', 'status', 'createdAt', 'updatedAt'])
-                      && request.resource.data.title is string
-                      && request.resource.data.title.size() > 0
-                      && request.resource.data.status in ['open', 'done'];
+          && isTaskOwner()
+          && onlyKeys([
+        'title',
+        'status',
+        'dueDate',
+        'createdAt',
+        'updatedAt'
+        ])
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.status in ['open', 'done'];
 
+        // Update task: immutable createdAt, valid status
         allow update: if isAuthenticated()
-                      && isOwner(getOwner(projectPath()))
-                      && request.resource.data.status in ['open', 'done'];
-
-        allow delete: if isAuthenticated()
-                      && isOwner(getOwner(projectPath()));
+          && isTaskOwner()
+          && onlyKeys([
+        'title',
+        'status',
+        'dueDate',
+        'createdAt',
+        'updatedAt'
+        ])
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.status in ['open', 'done'];
       }
     }
   }
